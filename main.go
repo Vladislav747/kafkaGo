@@ -17,6 +17,26 @@ func main() {
 		fmt.Println("Failed to create producer:", err)
 	}
 
+	go func() {
+		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+			"bootstrap.servers": "localhost:9092",
+			"group.id":          "go-kafka-client",
+			"auto.offset.reset": "smallest",
+		})
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for {
+			ev := consumer.Poll(100)
+			switch e := ev.(type) {
+			case *kafka.Message:
+				fmt.Printf("Message on %s: %s\n", e.TopicPartition, e.Value)
+			}
+		}
+	}()
+
 	delivery_chan := make(chan kafka.Event, 10000)
 	topic := "HYSE"
 	value := "example"

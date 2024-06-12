@@ -7,20 +7,39 @@ import (
 	"time"
 )
 
-type OrderProducer struct {
-	producer *kafka.Producer
-	topic    string
+type OrderPlacer struct {
+	producer     *kafka.Producer
+	topic        string
+	deliveryChan chan kafka.Event
 }
 
-func NewOrderProducer(p *kafka.Producer, topic string) *OrderProducer {
-	return &OrderProducer{
-		producer: p,
-		topic:    topic,
+func NewOrderPlacer(p *kafka.Producer, topic string) *OrderPlacer {
+	return &OrderPlacer{
+		producer:     p,
+		topic:        topic,
+		deliveryChan: make(chan kafka.Event, 10000),
 	}
 }
 
-func (o *OrderProducer) Produce(orderType string, size int) error {
-	o.producer.Produce(msg, nil)
+func (op *OrderPlacer) placeOrder(orderType string, size int) error {
+	format := fmt.Sprintf("%s - %d", orderType, size)
+	payload := []byte(format)
+
+	err := op.producer.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &op.topic, Partition: kafka.PartitionAny},
+		Value:          payload,
+	},
+		op.deliveryChan,
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	<-op.deliveryChan
+
+	return nil
+
 }
 
 func main() {

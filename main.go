@@ -84,25 +84,13 @@ func main() {
 		}
 	}()
 
-	delivery_chan := make(chan kafka.Event, 10000)
-	for {
+	op := NewOrderPlacer(p, topic)
 
-		value := "example"
-		err = p.Produce(&kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Value:          []byte(value)},
-			delivery_chan,
-		)
-
-		if err != nil {
+	for i := 0; i < 1000; i++ {
+		if err := op.placeOrder("market", i+1); err != nil {
 			log.Fatal(err)
 		}
-
-		<-delivery_chan
-
-		time.Sleep(time.Second * 3)
-
-		fmt.Println(p)
+		time.Sleep(3 * time.Second)
 	}
 
 }

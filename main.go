@@ -22,12 +22,17 @@ func NewOrderPlacer(p *kafka.Producer, topic string) *OrderPlacer {
 }
 
 func (op *OrderPlacer) placeOrder(orderType string, size int) error {
-	format := fmt.Sprintf("%s - %d", orderType, size)
-	payload := []byte(format)
+	var (
+		format  = fmt.Sprintf("%s - %d", orderType, size)
+		payload = []byte(format)
+	)
 
 	err := op.producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &op.topic, Partition: kafka.PartitionAny},
-		Value:          payload,
+		TopicPartition: kafka.TopicPartition{
+			Topic:     &op.topic,
+			Partition: kafka.PartitionAny,
+		},
+		Value: payload,
 	},
 		op.deliveryChan,
 	)
